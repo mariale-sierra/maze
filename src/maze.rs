@@ -6,10 +6,16 @@ pub struct Maze {
 }
 
 impl Maze {
-    pub fn new_backrooms() -> Self {
+    pub fn new_level(level: usize) -> Self {
+        match level {
+            2 => Self::new_backrooms_level2(),
+            _ => Self::new_backrooms_level1(),
+        }
+    }
+
+    pub fn new_backrooms_level1() -> Self {
         let mut grid = vec![vec!['.'; MAP_WIDTH]; MAP_HEIGHT];
 
-        // bordes exteriores
         for x in 0..MAP_WIDTH {
             grid[0][x] = '1';
             grid[MAP_HEIGHT - 1][x] = '1';
@@ -19,7 +25,6 @@ impl Maze {
             grid[y][MAP_WIDTH - 1] = '1';
         }
 
-        // pilares interiores, alternando el tipo de pared (colores/texturas distintas)
         let pillar_types = ['2', '3', '4'];
         let mut type_idx = 0;
         let mut y = 3;
@@ -33,18 +38,59 @@ impl Maze {
             y += 4;
         }
 
-        // un pasillo interior para dar variedad
         for x in 6..15 {
             grid[7][x] = '1';
         }
-        grid[7][10] = '.'; // hueco para poder pasar
+        grid[7][10] = '.';
 
-        // "puerta" de meta en una esquina (color distinto)
         grid[MAP_HEIGHT - 2][MAP_WIDTH - 2] = 'g';
 
         Maze { grid }
     }
 
+    pub fn new_backrooms_level2() -> Self {
+        let mut grid = vec![vec!['.'; MAP_WIDTH]; MAP_HEIGHT];
+
+        for x in 0..MAP_WIDTH {
+            grid[0][x] = '1';
+            grid[MAP_HEIGHT - 1][x] = '1';
+        }
+        for y in 0..MAP_HEIGHT {
+            grid[y][0] = '1';
+            grid[y][MAP_WIDTH - 1] = '1';
+        }
+
+        // pilares mas juntos y en patron distinto, para que se sienta
+        // como un nivel mas dificil/laberintico que el 1
+        let pillar_types = ['3', '4', '2', '4'];
+        let mut type_idx = 0;
+        let mut y = 2;
+        while y < MAP_HEIGHT - 2 {
+            let mut x = 2;
+            while x < MAP_WIDTH - 2 {
+                grid[y][x] = pillar_types[type_idx % pillar_types.len()];
+                type_idx += 1;
+                x += 3;
+            }
+            y += 3;
+        }
+
+        // un par de pasillos despejados para que siga siendo navegable
+        for x in 1..MAP_WIDTH - 1 {
+            grid[5][x] = if x % 6 == 0 { grid[5][x] } else { '.' };
+        }
+        for y in 1..MAP_HEIGHT - 1 {
+            grid[y][MAP_WIDTH / 2] = '.';
+        }
+
+        grid[MAP_HEIGHT - 2][MAP_WIDTH - 2] = 'g';
+
+        Maze { grid }
+    }
+
+    pub fn is_open(&self, cx: i32, cy: i32) -> bool {
+        !self.is_wall_cell(cx, cy)
+    }
     pub fn is_wall_cell(&self, cx: i32, cy: i32) -> bool {
         if cx < 0 || cy < 0 || cy as usize >= self.grid.len() || cx as usize >= self.grid[0].len() {
             return true; // fuera del mapa cuenta como pared para no salirse
